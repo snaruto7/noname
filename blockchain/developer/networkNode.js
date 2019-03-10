@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 const Blockchain = require('./blockchain');
-const bitcoin = new Blockchain();
+const paygrid = new Blockchain();
 const uuid = require('uuid/v1');
 const nodeAddress = uuid().split('-').join('');
 const port = process.argv[2];
@@ -17,23 +17,23 @@ app.get('/',function(req,res){
 });
 
 app.get('/blockchain',function(req,res){
-	res.send(bitcoin);
+	res.send(paygrid);
 });
 
 
 app.post('/transaction', function(req,res){
 	const newTransaction= req.body;
-	const blockIndex = bitcoin.addTransactionToPendingTransactions(newTransaction);
+	const blockIndex = paygrid.addTransactionToPendingTransactions(newTransaction);
 	res.json({ note : `The transaction will be added to block number ${blockIndex}.`});
 });
 
 
 app.post('/transaction/broadcast', function(req,res){
-	const newTransaction = bitcoin.createNewTransaction(req.body.amount, req.body.sender, req.body.recipient);
-	bitcoin.addTransactionToPendingTransactions(newTransaction);
+	const newTransaction = paygrid.createNewTransaction(req.body.node, req.body.amount, req.body.sender, req.body.recipient);
+	paygrid.addTransactionToPendingTransactions(newTransaction);
 
 	const requestPromise = [];
-	bitcoin.networkNodes.forEach(networkNodeUrl =>{
+	paygrid.networkNodes.forEach(networkNodeUrl =>{
 		const requestOptions = {
 			uri: networkNodeUrl + '/transaction',
 			method: 'POST',
@@ -51,22 +51,22 @@ app.post('/transaction/broadcast', function(req,res){
 });
 
 app.get('/mine', function(req,res){
-	const lastBlock = bitcoin.getLastBlock();
+	const lastBlock = paygrid.getLastBlock();
 	const previousBlockHash = lastBlock['hash'];
 
 	const currentBlockData = {
-		transactions: bitcoin.pendingTransactions,
+		transactions: paygrid.pendingTransactions,
 		index: lastBlock['index']+1
 	};
-	const nonce = bitcoin.proofOfWork(previousBlockHash, currentBlockData);
-	const blockHash = bitcoin.hashBlock(previousBlockHash, currentBlockData, nonce);
+	const nonce = paygrid.proofOfWork(previousBlockHash, currentBlockData);
+	const blockHash = paygrid.hashBlock(previousBlockHash, currentBlockData, nonce);
 
-	//bitcoin.createNewTransaction(12.5,"00",nodeAddress);
+	//paygrid.createNewTransaction(12.5,"00",nodeAddress);
 
-	const newBlock = bitcoin.createNewBlock(nonce, previousBlockHash, blockHash);
+	const newBlock = paygrid.createNewBlock(nonce, previousBlockHash, blockHash);
 
 	const requestPromise = [];
-	bitcoin.networkNodes.forEach(networkNodeUrl =>{
+	paygrid.networkNodes.forEach(networkNodeUrl =>{
 		const requestOptions = {
 			uri: networkNodeUrl + '/receive-new-block',
 			method: 'POST',
@@ -80,9 +80,10 @@ app.get('/mine', function(req,res){
 	Promise.all(requestPromise)
 	.then(data => {
 		const requestOptions = { 
-			uri: bitcoin.currentNodeUrl + '/transaction/broadcast',
+			uri: paygrid.currentNodeUrl + '/transaction/broadcast',
 			method: 'POST',
 			body: {
+				node: paygrid.currentNodeUrl,
 				amount: 12.5,
 				sender: "00",
 				recipient: nodeAddress
@@ -103,13 +104,13 @@ app.get('/mine', function(req,res){
 
 app.post('/receive-new-block', function(req,res){
 	const newBlock = req.body.newBlock;
-	const lastBlock = bitcoin.getLastBlock();
+	const lastBlock = paygrid.getLastBlock();
 	const correctHash = lastBlock.hash === newBlock.previousBlockHash;
 	const correctIndex = lastBlock['index'] + 1 === newBlock['index'];
 
 	if(correctIndex && correctHash){
-		bitcoin.chain.push(newBlock);
-		bitcoin.pendingTransactions = [];
+		paygrid.chain.push(newBlock);
+		paygrid.pendingTransactions = [];
 		res.json({
 			note: "New Block verified and accepted",
 			newBlock: newBlock
@@ -124,11 +125,11 @@ app.post('/receive-new-block', function(req,res){
 
 app.post('/register-and-broadcast-node', function(req,res){
 	const newNodeUrl = req.body.newNodeUrl;
-	if(bitcoin.networkNodes.indexOf(newNodeUrl) == -1)
-		bitcoin.networkNodes.push(newNodeUrl);
+	if(paygrid.networkNodes.indexOf(newNodeUrl) == -1)
+		paygrid.networkNodes.push(newNodeUrl);
 
 	const regNodesPromises = [];
-	bitcoin.networkNodes.forEach(networkNodeUrl => {
+	paygrid.networkNodes.forEach(networkNodeUrl => {
 		const requestOptions = {
 			uri: networkNodeUrl + '/register-node',
 			method: 'POST',
@@ -144,7 +145,7 @@ app.post('/register-and-broadcast-node', function(req,res){
 		const bulkRegisterOptions = {
 			uri: newNodeUrl + '/register-nodes-bulk',
 			method: 'POST',
-			body: { allNetworkNodes: [ ...bitcoin.networkNodes, bitcoin.currentNodeUrl ] },
+			body: { allNetworkNodes: [ ...paygrid.networkNodes, paygrid.currentNodeUrl ] },
 			json: true
 		};
 
@@ -159,20 +160,20 @@ app.post('/register-and-broadcast-node', function(req,res){
 
 app.post('/register-node', function(req,res){
 	const newNodeUrl = req.body.newNodeUrl;
-	const nodeNotAlreadyPresent = bitcoin.networkNodes.indexOf(newNodeUrl) == -1;
-	const notCurrentNode = bitcoin.currentNodeUrl !== newNodeUrl;
+	const nodeNotAlreadyPresent = paygrid.networkNodes.indexOf(newNodeUrl) == -1;
+	const notCurrentNode = paygrid.currentNodeUrl !== newNodeUrl;
 	if(nodeNotAlreadyPresent && notCurrentNode)
-		bitcoin.networkNodes.push(newNodeUrl);
+		paygrid.networkNodes.push(newNodeUrl);
 	res.json({ note: 'New node registered successfully.' });
 });
 
 app.post('/register-nodes-bulk',function(req,res){
 	const allNetworkNodes = req.body.allNetworkNodes;
 	allNetworkNodes.forEach(networkNodeUrl =>{
-		const nodeNotAlreadyPresent = bitcoin.networkNodes.indexOf(networkNodeUrl) == -1;
-		const notCurrentNode = bitcoin.currentNodeUrl !== networkNodeUrl;
+		const nodeNotAlreadyPresent = paygrid.networkNodes.indexOf(networkNodeUrl) == -1;
+		const notCurrentNode = paygrid.currentNodeUrl !== networkNodeUrl;
 		if(nodeNotAlreadyPresent && notCurrentNode)
-			bitcoin.networkNodes.push(networkNodeUrl);
+			paygrid.networkNodes.push(networkNodeUrl);
 	});
 
 	res.json({ note: 'Bulk registration successful.' });
@@ -182,7 +183,7 @@ app.post('/register-nodes-bulk',function(req,res){
 
 app.get('/consensus', function(req,res){
 	const requestPromise = [];
-	bitcoin.networkNodes.forEach(networkNodeUrl =>{
+	paygrid.networkNodes.forEach(networkNodeUrl =>{
 		const requestOptions = {
 			uri: networkNodeUrl + '/blockchain',
 			method: 'GET',
@@ -194,7 +195,7 @@ app.get('/consensus', function(req,res){
 
 	Promise.all(requestPromise)
 	.then(blockchains =>{
-		const currentChainLength = bitcoin.chain.length;
+		const currentChainLength = paygrid.chain.length;
 		let maxChainLength = currentChainLength;
 		let newLongestChain = null;
 		let newPendingTransactions = null;
@@ -206,18 +207,18 @@ app.get('/consensus', function(req,res){
 			};
 		});
 
-		if(!newLongestChain || (newLongestChain && !bitcoin.chainIsValid(newLongestChain))){
+		if(!newLongestChain || (newLongestChain && !paygrid.chainIsValid(newLongestChain))){
 			res.json({
 				note: "Current chain has not been replaced.",
-				chain: bitcoin.chain
+				chain: paygrid.chain
 			});
 
 		}else{
-			bitcoin.chain = newLongestChain;
-			bitcoin.pendingTransactions = newPendingTransactions;
+			paygrid.chain = newLongestChain;
+			paygrid.pendingTransactions = newPendingTransactions;
 			res.json({
 				note: "This chain has been replaced.",
-				chain: bitcoin.chain
+				chain: paygrid.chain
 			});
 		};
 	});
@@ -228,7 +229,7 @@ app.get('/consensus', function(req,res){
 app.get('/block/:blockHash', function(req,res){
 
 	const blockHash = req.params.blockHash;
-	const correctBlock = bitcoin.getBlock(blockHash);
+	const correctBlock = paygrid.getBlock(blockHash);
 	res.json({
 		block: correctBlock
 	});
@@ -237,7 +238,7 @@ app.get('/block/:blockHash', function(req,res){
 
 app.get('/transaction/:transaction', function(req,res){
 	const transactionId = req.params.transaction;
-	const transactionData = bitcoin.getTransaction(transactionId);
+	const transactionData = paygrid.getTransaction(transactionId);
 	res.join({
 		transaction: transactionData.transaction,
 		block: transactionData.block
@@ -246,7 +247,7 @@ app.get('/transaction/:transaction', function(req,res){
 
 app.get('/address/:address', function(req,res){
 	const address = req.params.address;
-	const addressData = bitcoin.getAddressData(address);
+	const addressData = paygrid.getAddressData(address);
 
 	res.json({
 		addressData: addressData
