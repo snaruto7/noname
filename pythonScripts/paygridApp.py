@@ -15,6 +15,12 @@ connected_nodes = []
 trust_values = {}
 
 
+background_image=PhotoImage(file = "C:\\Users\\snaru\\Desktop\\nonamenormies\\pythonScripts\\logo1.png")
+background_label = Label(master, image=background_image)
+background_label.place(x=0, y=0, relwidth=1, relheight=1)
+
+
+
 def checkConnectivity():
     nodes = ["http://192.168.43.117:3001/", "http://192.168.43.117:3002/", "http://192.168.43.117:3003/", "http://192.168.43.117:3004/", "http://192.168.43.117:3005/"]
 

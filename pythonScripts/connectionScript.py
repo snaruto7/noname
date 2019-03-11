@@ -27,7 +27,7 @@ def registerAll():
             print ("Cannnot connect to network")
 
 
-
+registerAll()
 def scaling(string):
     node=random.choice(nodes)
     body = { 'newNodeUrl': string }
