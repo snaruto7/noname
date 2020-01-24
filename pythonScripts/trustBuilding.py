@@ -10,7 +10,7 @@ banned_nodes = {}    # banned nodes
 trust_values = {}    # trust values of each and every node
 trust_ranking = {}   # ranking based on trust value (visible)
 def checkConnectivity():    #checking connectivity of nodes in network
-    nodes = ["http://192.168.43.117:3001/", "http://192.168.43.117:3002/", "http://192.168.43.117:3003/", "http://192.168.43.117:3004/", "http://192.168.43.117:3005/"]
+    nodes = ["http://192.168.29.39:3001/", "http://192.168.29.39:3002/", "http://192.168.29.39:3003/", "http://192.168.29.39:3004/", "http://192.168.29.39:3005/"]
 
     for node in nodes:
         response = os.system("curl -I " + node)
@@ -56,7 +56,7 @@ def authentication():   #validation phase of transaction
 #authentication()
 #print (trust_values)
 """
-nodes = ["http://192.168.43.119:3001", "http://192.168.43.119:3002", "http://192.168.43.119:3003", "http://192.168.43.119:3004", "http://192.168.43.119:3005"]
+ nodes = ["http://192.168.29.39:3001/", "http://192.168.29.39:3002/", "http://192.168.29.39:3003/", "http://192.168.29.39:3004/", "http://192.168.29.39:3005/"]
 trust = {nodes[0]:0,nodes[1]:0, nodes[2]:0, nodes[3]:0, nodes[4]:0}
 list_node=[]
 

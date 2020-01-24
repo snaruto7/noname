@@ -15,14 +15,14 @@ connected_nodes = []
 trust_values = {}
 
 
-background_image=PhotoImage(file = "C:\\Users\\snaru\\Desktop\\nonamenormies\\pythonScripts\\logo1.png")
+background_image=PhotoImage(file = "D:\\FYP\\nonamenormies\\pythonScripts\\logo1.png")
 background_label = Label(master, image=background_image)
 background_label.place(x=0, y=0, relwidth=1, relheight=1)
 
 
 
 def checkConnectivity():
-    nodes = ["http://192.168.43.117:3001/", "http://192.168.43.117:3002/", "http://192.168.43.117:3003/", "http://192.168.43.117:3004/", "http://192.168.43.117:3005/"]
+    nodes = ["http://192.168.29.39:3001/", "http://192.168.29.39:3002/", "http://192.168.29.39:3003/", "http://192.168.29.39:3004/", "http://192.168.29.39:3005/"]
 
     for node in nodes:
         response = os.system("curl -I " + node)
@@ -34,8 +34,6 @@ def checkConnectivity():
             #pingStatus = False
 
     #return pingStatus
-
-#nodes = ["http://192.168.43.117:3001", "http://192.168.43.117:3002", "http://192.168.43.117:3003", "http://192.168.43.117:3004", "http://192.168.43.117:3005"]
 
 checkConnectivity()
 #trust_values = { i : 0 for i in connected_nodes }
